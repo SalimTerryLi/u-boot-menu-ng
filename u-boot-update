@@ -133,18 +133,16 @@ parse_config_file() {
 }
 
 parse_config() {
-    loopctrlfile="$(mktemp)"
-    logd "loopctrlfile: ${loopctrlfile}"
-    find "${CONFIG_DIR_PATH}" -maxdepth 1 -type f -name '*.conf' 2>/dev/null || true > "${loopctrlfile}"
     while IFS= read -r conf_file; do
+        [ -z "${conf_file}" ] && continue
         if [ "${conf_file}" = "${CONFIG_DIR_PATH}/"'*.conf' ]; then
             break
         fi
         logd "Loading system configuration: ${conf_file}"
         parse_config_file "${conf_file}"
-    done < "${loopctrlfile}"
-    rm "${loopctrlfile}"
-    unset loopctrlfile
+    done << EOF
+$(find "${CONFIG_DIR_PATH}" -maxdepth 1 -type f -name '*.conf' 2>/dev/null || true)
+EOF
 
     if [ -f "${CONFIG_FILE_PATH}" ]; then
         logd "Loading user configuration: ${CONFIG_FILE_PATH}"
@@ -303,9 +301,6 @@ generate_extlinux() {
     content="$(generate_extlinux_head)"
     content="$(printf "%s\n\n%s" "${content}" "$(generate_extlinux_title)")"
 
-    loopctrlfile="$(mktemp)"
-    logd "loopctrlfile: ${loopctrlfile}"
-    printf "%s\n" "${1}" > "${loopctrlfile}"
     entry_count=0
     while IFS= read -r line; do
         [ -z "${line}" ] && continue
@@ -315,9 +310,9 @@ generate_extlinux() {
             content="$(printf "%s\n\n%s" "${content}" "label entry_${entry_count}_${target}")"
             content="$(printf "%s\n%s" "${content}" "$(generate_extlinux_entry "${line}" "${target}")")"
         done
-    done < "${loopctrlfile}"
-    rm "${loopctrlfile}"
-    unset loopctrlfile
+    done << EOF
+${1}
+EOF
 
     if [ $entry_count -eq 0 ]; then
         loge "No kernel entry found"
