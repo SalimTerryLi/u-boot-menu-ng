@@ -10,6 +10,8 @@ set -o noglob
 # Controlled configuration source
 readonly CONFIG_FILE_PATH="${CONFIG_FILE_PATH:-/etc/default/u-boot}"
 readonly CONFIG_DIR_PATH="${CONFIG_DIR_PATH:-/usr/share/u-boot-menu/conf.d}"
+readonly PLUGIN_SYS_PATH="${PLUGIN_SYS_PATH:-/usr/share/u-boot-menu/plugins}"
+readonly PLUGIN_USER_PATH="${PLUGIN_USER_PATH:-/etc/u-boot-menu/plugins}"
 #
 ## Configuration defaults
 U_BOOT_CONFIG_PATH='/boot/extlinux/extlinux.conf'
@@ -126,19 +128,77 @@ parse_config() {
     fi
 }
 
-## Kernel discovery method: BOOTDIR
+###### Plugins
 #
-# Search for file names under /boot that matchs extended sed expression:
-#   sed -E "${U_BOOT_METH_BOOTDIR_PATTERN}"
-# Three capture groups are expected in PATTERN:
-#   1. prefix of kernel filename, like vmlinuz-
-#   2. stem of kernel version which also exists inside /lib/modules
-#   3. suffix of kernel filename, may be empty, or something like '.img'
-collect_kvers_bootdir() {
-    logi "Searching kernels in ${U_BOOT_METH_BOOTDIR_PATH}"
-    find "${U_BOOT_METH_BOOTDIR_PATH}" -maxdepth 1 \
-        -type f -printf '%f\n' \
-            | sed -nE 's#'"${U_BOOT_METH_BOOTDIR_PATTERN}"'#\2#p'
+
+filter_sys_plugins_override() {
+    sys_plugins="${1}"
+    user_plugins_dir="${2}"
+    while IFS= read -r line || [ -n "${line}" ]; do
+        [ -z "${line}" ] && continue
+        plugin_fname="$(basename "${line}")"
+        if [ -e "${user_plugins_dir}/${plugin_fname}" ]; then
+            logw "User plugin overrides: ${plugin_fname}"
+        else
+            printf "%s\n" "${line}"
+        fi
+        unset plugin_fname
+        unset line
+    done << EOF
+${sys_plugins}
+EOF
+    unset sys_plugins
+    unset user_plugins_dir
+}
+
+__finder_plugins=""
+
+load_finder_plugin () {
+    plugin_path="${1}"
+    logd "Loading: ${plugin_path}"
+
+    unset get_plugin_id
+    # shellcheck shell=dash disable=SC1090
+    . "${plugin_path}"
+
+    if ! is_function "get_plugin_id"; then
+        loge "Not implemented: get_plugin_id in ${plugin_path}"
+        exit 1
+    fi
+    plugin_id="$(get_plugin_id)"
+
+    if ! is_function "find_kernels_${plugin_id}"; then
+        loge "Not implemented: find_kernels_${plugin_id} in ${plugin_path}"
+        exit 1
+    fi
+
+    __finder_plugins="$(printf "%s\n%s" "${__finder_plugins}" "${plugin_id}")"
+    logd "Finder plugin loaded: ${plugin_id}"
+
+    unset plugin_id
+    unset get_plugin_id
+    unset plugin_path
+}
+
+has_finder_plugin () {
+    printf "%s" "${__finder_plugins}" | grep "${1}"
+}
+
+load_plugins () {
+    logd "preinstalled plugin dir: ${PLUGIN_SYS_PATH}"
+    logd "user plugin dir: ${PLUGIN_USER_PATH}"
+
+    # loading kernel finder plugins
+    sys_plugin_finders="$(find "${PLUGIN_SYS_PATH}/finders" -maxdepth 1 -type f -name '*.plugin' 2>/dev/null || true)"
+    sys_plugin_finders="$(filter_sys_plugins_override "${sys_plugin_finders}" "${PLUGIN_USER_PATH}/finders")"
+    while IFS= read -r line || [ -n "${line}" ]; do
+        [ -z "${line}" ] && continue
+        load_finder_plugin "${line}"
+    done << EOF
+${sys_plugin_finders}
+EOF
+    unset sys_plugin_finders
+
 }
 
 collect_kvers_modulesdir() {
@@ -148,18 +208,14 @@ collect_kvers_modulesdir() {
         -exec sh -c 'basename "$(dirname "$1")"' shell {} \;
 }
 
-collect_kvers() {
-    search_meth_func="collect_kvers_$(printf "%s" "${U_BOOT_SEARCH_METHOD}" | tr '[:upper:]' '[:lower:]')"
-    if ! is_function "${search_meth_func}"; then
-        loge "Kernel search method not implemented: ${U_BOOT_SEARCH_METHOD}"
+find_kernels() {
+    if ! has_finder_plugin "${U_BOOT_SEARCH_METHOD}"; then
+        loge "finder plugin not implemented: ${U_BOOT_SEARCH_METHOD}"
         exit 1
     fi
-    logd "kver collect method: ${U_BOOT_SEARCH_METHOD}"
-    kvers="$("${search_meth_func}")"
+    kvers="$("find_kernels_${U_BOOT_SEARCH_METHOD}")"
     echo "${kvers}" | sort -rV
     unset kvers
-
-    unset search_meth_func
 }
 
 generate_extlinux_head() {
@@ -253,7 +309,8 @@ generate_extlinux() {
 main() {
     logging_init
     parse_config
-    generate_extlinux "$(collect_kvers)"
+    load_plugins
+    generate_extlinux "$(find_kernels)"
 }
 
 main "$@"

@@ -1,0 +1,21 @@
+#!/usr/bin/env false
+
+## Kernel discovery method: BOOTDIR
+#
+# Search for file names under /boot that matchs extended sed expression:
+#   sed -E "${U_BOOT_METH_BOOTDIR_PATTERN}"
+# Three capture groups are expected in PATTERN:
+#   1. prefix of kernel filename, like vmlinuz-
+#   2. stem of kernel version which also exists inside /lib/modules
+#   3. suffix of kernel filename, may be empty, or something like '.img'
+
+get_plugin_id() {
+    printf "bootdir"
+}
+
+find_kernels_bootdir() {
+    logi "Searching kernels in ${U_BOOT_METH_BOOTDIR_PATH}"
+    find "${U_BOOT_METH_BOOTDIR_PATH}" -maxdepth 1 \
+        -type f -printf '%f\n' \
+            | sed -nE 's#'"${U_BOOT_METH_BOOTDIR_PATTERN}"'#\2#p'
+}
