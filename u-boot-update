@@ -161,7 +161,7 @@ load_finder_plugin () {
 }
 
 has_finder_plugin () {
-    printf "%s" "${__finder_plugins}" | grep "${1}"
+    printf "%s" "${__finder_plugins}" | grep "${1}" >/dev/null
 }
 
 filter_sys_plugins_override() {
