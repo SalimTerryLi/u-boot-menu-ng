@@ -212,13 +212,6 @@ load_plugins () {
     unset user_plugin_finders
 }
 
-collect_kvers_modulesdir() {
-    logi "Searching kernels in /usr/lib/modules"
-    find "/usr/lib/modules" -maxdepth 2 \
-        -type f -name "${U_BOOT_METH_MODULESDIR_KERNELNAME}" \
-        -exec sh -c 'basename "$(dirname "$1")"' shell {} \;
-}
-
 find_kernels() {
     if ! has_finder_plugin "${U_BOOT_SEARCH_METHOD}"; then
         loge "finder plugin not implemented: ${U_BOOT_SEARCH_METHOD}"

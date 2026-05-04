@@ -1,0 +1,18 @@
+#!/usr/bin/env false
+
+## Kernel discovery method: modulesdir
+#
+# Search folders under /usr/lib/modules that contains file:
+# "${U_BOOT_METH_BOOTDIR_PATTERN}"
+# The name of matched folder will be used as kernel version
+
+get_plugin_id() {
+    printf "modulesdir"
+}
+
+find_kernels_modulesdir() {
+    logi "Searching kernels in /usr/lib/modules"
+    find "/usr/lib/modules" -maxdepth 2 \
+        -type f -name "${U_BOOT_METH_MODULESDIR_KERNELNAME}" \
+        -exec sh -c 'basename "$(dirname "$1")"' shell {} \;
+}
