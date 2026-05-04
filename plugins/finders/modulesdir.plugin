@@ -12,7 +12,7 @@ get_plugin_id() {
     printf "modulesdir"
 }
 
-parse_config_modulesdir () {
+parse_config_finder_modulesdir () {
     printf "U_BOOT_METH_MODULESDIR_KERNELNAME='%s'\n" "${U_BOOT_METH_MODULESDIR_KERNELNAME}"
 }
 

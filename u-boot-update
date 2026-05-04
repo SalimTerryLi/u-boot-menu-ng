@@ -122,9 +122,10 @@ parse_config_file_impl () {
     # Let plugins pick up their configs too
     while IFS= read -r line || [ -n "${line}" ]; do
         [ -z "${line}" ] && continue
+        logd "calling parse_config_${line}"
         "parse_config_${line}"
     done << __E_O___F___
-${__finder_plugins}
+$(printf '%s\n' "${__finder_plugins}" | sed -nE 's/^(.+)$/finder_\1/p')
 __E_O___F___
 }
 
@@ -172,7 +173,7 @@ load_finder_plugin () {
         exit 1
     fi
 
-    if ! is_function "parse_config_${plugin_id}"; then
+    if ! is_function "parse_config_finder_${plugin_id}"; then
         loge "Not implemented: parse_config_${plugin_id} in ${plugin_path}"
         exit 1
     fi

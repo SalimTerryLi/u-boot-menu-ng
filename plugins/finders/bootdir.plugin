@@ -16,7 +16,7 @@ get_plugin_id() {
     printf "bootdir"
 }
 
-parse_config_bootdir () {
+parse_config_finder_bootdir () {
     printf "U_BOOT_METH_BOOTDIR_PATH='%s'\n" "${U_BOOT_METH_BOOTDIR_PATH}"
     printf "U_BOOT_METH_BOOTDIR_PATTERN='%s'\n" "${U_BOOT_METH_BOOTDIR_PATTERN}"
 }
