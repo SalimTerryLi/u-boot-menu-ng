@@ -131,26 +131,6 @@ parse_config() {
 ###### Plugins
 #
 
-filter_sys_plugins_override() {
-    sys_plugins="${1}"
-    user_plugins_dir="${2}"
-    while IFS= read -r line || [ -n "${line}" ]; do
-        [ -z "${line}" ] && continue
-        plugin_fname="$(basename "${line}")"
-        if [ -e "${user_plugins_dir}/${plugin_fname}" ]; then
-            logw "User plugin overrides: ${plugin_fname}"
-        else
-            printf "%s\n" "${line}"
-        fi
-        unset plugin_fname
-        unset line
-    done << EOF
-${sys_plugins}
-EOF
-    unset sys_plugins
-    unset user_plugins_dir
-}
-
 __finder_plugins=""
 
 load_finder_plugin () {
@@ -184,6 +164,39 @@ has_finder_plugin () {
     printf "%s" "${__finder_plugins}" | grep "${1}"
 }
 
+filter_sys_plugins_override() {
+    sys_plugins="${1}"
+    user_plugins_dir="${2}"
+    while IFS= read -r line || [ -n "${line}" ]; do
+        [ -z "${line}" ] && continue
+        plugin_fname="$(basename "${line}")"
+        if [ -e "${user_plugins_dir}/${plugin_fname}" ]; then
+            logw "User plugin overrides: ${plugin_fname}"
+        else
+            printf "%s\n" "${line}"
+        fi
+        unset plugin_fname
+        unset line
+    done << EOF
+${sys_plugins}
+EOF
+    unset sys_plugins
+    unset user_plugins_dir
+}
+
+load_plugins_impl () {
+    plugin_loader="${1}"
+    plugin_list="${2}"
+    while IFS= read -r line || [ -n "${line}" ]; do
+        [ -z "${line}" ] && continue
+        "${plugin_loader}" "${line}"
+    done << EOF
+${plugin_list}
+EOF
+    unset plugin_list
+    unset plugin_loader
+}
+
 load_plugins () {
     logd "preinstalled plugin dir: ${PLUGIN_SYS_PATH}"
     logd "user plugin dir: ${PLUGIN_USER_PATH}"
@@ -191,14 +204,12 @@ load_plugins () {
     # loading kernel finder plugins
     sys_plugin_finders="$(find "${PLUGIN_SYS_PATH}/finders" -maxdepth 1 -type f -name '*.plugin' 2>/dev/null || true)"
     sys_plugin_finders="$(filter_sys_plugins_override "${sys_plugin_finders}" "${PLUGIN_USER_PATH}/finders")"
-    while IFS= read -r line || [ -n "${line}" ]; do
-        [ -z "${line}" ] && continue
-        load_finder_plugin "${line}"
-    done << EOF
-${sys_plugin_finders}
-EOF
+    load_plugins_impl "load_finder_plugin" "${sys_plugin_finders}"
     unset sys_plugin_finders
 
+    user_plugin_finders="$(find "${PLUGIN_USER_PATH}/finders" -maxdepth 1 -type f -name '*.plugin' 2>/dev/null || true)"
+    load_plugins_impl "load_finder_plugin" "${user_plugin_finders}"
+    unset user_plugin_finders
 }
 
 collect_kvers_modulesdir() {

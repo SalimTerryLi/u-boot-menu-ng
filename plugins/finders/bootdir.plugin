@@ -1,6 +1,6 @@
 #!/usr/bin/env false
 
-## Kernel discovery method: BOOTDIR
+## Kernel discovery method: bootdir
 #
 # Search for file names under /boot that matchs extended sed expression:
 #   sed -E "${U_BOOT_METH_BOOTDIR_PATTERN}"
