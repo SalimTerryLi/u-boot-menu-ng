@@ -6,8 +6,14 @@
 # "${U_BOOT_METH_BOOTDIR_PATTERN}"
 # The name of matched folder will be used as kernel version
 
+U_BOOT_METH_MODULESDIR_KERNELNAME='vmlinuz'
+
 get_plugin_id() {
     printf "modulesdir"
+}
+
+parse_config_modulesdir () {
+    printf "U_BOOT_METH_MODULESDIR_KERNELNAME='%s'\n" "${U_BOOT_METH_MODULESDIR_KERNELNAME}"
 }
 
 find_kernels_modulesdir() {

@@ -19,9 +19,6 @@ U_BOOT_TIMEOUT='50'
 U_BOOT_PROMPT='1'
 U_BOOT_TITLE='U-Boot Menu'
 U_BOOT_SEARCH_METHOD='BOOTDIR'
-U_BOOT_METH_BOOTDIR_PATH='/boot'
-U_BOOT_METH_BOOTDIR_PATTERN='^(vmlinuz-|Image-)(.+)()$'
-U_BOOT_METH_MODULESDIR_KERNELNAME='vmlinuz'
 U_BOOT_TARGETS='default rescue'
 U_BOOT_TARGET_LABEL='Bootable - Linux${KERNEL_VERSION:+ ${KERNEL_VERSION}}${BOOT_TARGET:+ (${BOOT_TARGET})}'
 U_BOOT_TARGET_KERNEL='/boot/vmlinuz${KERNEL_VERSION:+-${KERNEL_VERSION}}'
@@ -32,6 +29,8 @@ U_BOOT_TARGET_FDT_DIR='/boot/dtb/${KERNEL_VERSION}'
 #
 # Be quiet
 readonly LOG_LEVEL="${LOG_LEVEL:-ERROR}"
+# loaded plugins
+__finder_plugins=""
 
 ###### Logging
 
@@ -103,9 +102,34 @@ is_function() {
 # 2. ${CONFIG_FILE_PATH} : User defined options, will override thoses defined in the above
 #
 
-parse_config_file() {
+parse_config_file_impl () {
     # shellcheck shell=dash disable=SC1090
-    . "${1}"
+    . "${1}" >/dev/null
+    # Pick up only useful items
+    printf "U_BOOT_CONFIG_PATH='%s'\n" "${U_BOOT_CONFIG_PATH}"
+    printf "U_BOOT_TIMEOUT='%s'\n" "${U_BOOT_TIMEOUT}"
+    printf "U_BOOT_PROMPT='%s'\n" "${U_BOOT_PROMPT}"
+    printf "U_BOOT_TITLE='%s'\n" "${U_BOOT_TITLE}"
+    printf "U_BOOT_SEARCH_METHOD='%s'\n" "${U_BOOT_SEARCH_METHOD}"
+    printf "U_BOOT_TARGETS='%s'\n" "${U_BOOT_TARGETS}"
+    printf "U_BOOT_TARGET_LABEL='%s'\n" "${U_BOOT_TARGET_LABEL}"
+    printf "U_BOOT_TARGET_KERNEL='%s'\n" "${U_BOOT_TARGET_KERNEL}"
+    printf "U_BOOT_TARGET_BOOT_ARGS='%s'\n" "${U_BOOT_TARGET_BOOT_ARGS}"
+    printf "U_BOOT_TARGET_INITRD='%s'\n" "${U_BOOT_TARGET_INITRD}"
+    printf "U_BOOT_TARGET_FDT='%s'\n" "${U_BOOT_TARGET_FDT}"
+    printf "U_BOOT_TARGET_FDT_DIR='%s'\n" "${U_BOOT_TARGET_FDT_DIR}"
+
+    # Let plugins pick up their configs too
+    while IFS= read -r line || [ -n "${line}" ]; do
+        [ -z "${line}" ] && continue
+        "parse_config_${line}"
+    done << EOF
+${__finder_plugins}
+EOF
+}
+
+parse_config_file() {
+    eval "$(parse_config_file_impl "$@")"
 }
 
 parse_config() {
@@ -131,8 +155,6 @@ parse_config() {
 ###### Plugins
 #
 
-__finder_plugins=""
-
 load_finder_plugin () {
     plugin_path="${1}"
     logd "Loading: ${plugin_path}"
@@ -149,6 +171,11 @@ load_finder_plugin () {
 
     if ! is_function "find_kernels_${plugin_id}"; then
         loge "Not implemented: find_kernels_${plugin_id} in ${plugin_path}"
+        exit 1
+    fi
+
+    if ! is_function "parse_config_${plugin_id}"; then
+        loge "Not implemented: parse_config_${plugin_id} in ${plugin_path}"
         exit 1
     fi
 
@@ -312,8 +339,8 @@ generate_extlinux() {
 
 main() {
     logging_init
-    parse_config
     load_plugins
+    parse_config
     generate_extlinux "$(find_kernels)"
 }
 

@@ -9,8 +9,16 @@
 #   2. stem of kernel version which also exists inside /lib/modules
 #   3. suffix of kernel filename, may be empty, or something like '.img'
 
+U_BOOT_METH_BOOTDIR_PATH='/boot'
+U_BOOT_METH_BOOTDIR_PATTERN='^(vmlinuz-|Image-)(.+)()$'
+
 get_plugin_id() {
     printf "bootdir"
+}
+
+parse_config_bootdir () {
+    printf "U_BOOT_METH_BOOTDIR_PATH='%s'\n" "${U_BOOT_METH_BOOTDIR_PATH}"
+    printf "U_BOOT_METH_BOOTDIR_PATTERN='%s'\n" "${U_BOOT_METH_BOOTDIR_PATTERN}"
 }
 
 find_kernels_bootdir() {
