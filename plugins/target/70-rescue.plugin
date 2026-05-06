@@ -1,0 +1,19 @@
+#!/usr/bin/env false
+
+## Boot target: rescue
+
+get_plugin_id() {
+    printf "rescue"
+}
+
+parse_config_target_rescue () {
+    true
+}
+
+boot_target_rescue_name() {
+    printf "rescue"
+}
+
+boot_target_rescue_cmdline() {
+    printf "single"
+}

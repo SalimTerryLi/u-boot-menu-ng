@@ -1,0 +1,19 @@
+#!/usr/bin/env false
+
+## Boot target: default
+
+get_plugin_id() {
+    printf "default"
+}
+
+parse_config_target_default () {
+    true
+}
+
+boot_target_default_name() {
+    true
+}
+
+boot_target_default_cmdline() {
+    true
+}

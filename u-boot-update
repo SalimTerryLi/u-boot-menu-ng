@@ -31,6 +31,7 @@ U_BOOT_TARGET_FDT_DIR='/boot/dtb/${KERNEL_VERSION}'
 readonly LOG_LEVEL="${LOG_LEVEL:-ERROR}"
 # loaded plugins
 __finder_plugins=""
+__target_plugins=""
 
 ###### Logging
 
@@ -172,6 +173,29 @@ has_finder_plugin () {
     printf "%s" "${__finder_plugins}" | grep "${1}" >/dev/null
 }
 
+load_plugin_target () {
+    plugin_id="${1}"
+
+    if ! is_function "boot_target_${plugin_id}_name"; then
+        loge "Not implemented: boot_target_${plugin_id}_name in ${plugin_id}"
+        exit 1
+    fi
+
+    if ! is_function "boot_target_${plugin_id}_cmdline"; then
+        loge "Not implemented: boot_target_${plugin_id}_cmdline in ${plugin_id}"
+        exit 1
+    fi
+
+    __target_plugins="$(printf "%s\n%s" "${__target_plugins}" "${plugin_id}")"
+    logd "Target plugin loaded: ${plugin_id}"
+
+    unset plugin_id
+}
+
+has_target_plugin () {
+    printf "%s" "${__target_plugins}" | grep "${1}" >/dev/null
+}
+
 filter_sys_plugins_override() {
     sys_plugins="${1}"
     user_plugins_dir="${2}"
@@ -229,7 +253,7 @@ load_plugins () {
     logd "preinstalled plugin dir: ${PLUGIN_SYS_PATH}"
     logd "user plugin dir: ${PLUGIN_USER_PATH}"
 
-    for type in "finder"; do
+    for type in "finder" "target"; do
         logd "Loading ${type} plugins..."
         # pre-installed plugins
         sys_plugin="$(find "${PLUGIN_SYS_PATH}/${type}" -maxdepth 1 -type f -name '*.plugin' 2>/dev/null || true)"
@@ -266,7 +290,7 @@ generate_extlinux_title() {
         logw "System will always boot into default entry"
     fi
     cat << __E_O___F___
-default entry_1
+default entry_1_default
 menu title ${U_BOOT_TITLE}
 prompt ${U_BOOT_PROMPT}
 timeout ${U_BOOT_TIMEOUT}
@@ -275,7 +299,9 @@ __E_O___F___
 
 generate_extlinux_entry() {
     KERNEL_VERSION="${1}"
-    BOOT_TARGET="${2}"
+    boot_target_id="${2}"
+    BOOT_TARGET="$("boot_target_${boot_target_id}_name")"
+    boot_target_cmdline="$("boot_target_${boot_target_id}_cmdline")"
 
     logd "generating for kernel (${KERNEL_VERSION}) target (${BOOT_TARGET})"
 #     cat << __E_O___F___
@@ -285,7 +311,7 @@ generate_extlinux_entry() {
 # __E_O___F___
     eval printf "\"\tmenu label %s\n\"" "\"${U_BOOT_TARGET_LABEL}\""
     eval printf "\"\tlinux %s\n\"" "\"${U_BOOT_TARGET_KERNEL}\""
-    eval printf "\"\tappend %s\n\"" "\"${U_BOOT_TARGET_BOOT_ARGS}\""
+    eval printf "\"\tappend %s\n\"" "\"${U_BOOT_TARGET_BOOT_ARGS}${boot_target_cmdline:+ ${boot_target_cmdline}}\""
     if [ -n "${U_BOOT_TARGET_INITRD}" ]; then
         eval printf "\"\tinitrd %s\n\"" "\"${U_BOOT_TARGET_INITRD}\""
     fi
@@ -299,6 +325,8 @@ generate_extlinux_entry() {
     fi
     unset KERNEL_VERSION
     unset BOOT_TARGET
+    unset boot_target_id
+    unset boot_target_cmdline
 }
 
 # Expected kver format:
@@ -314,6 +342,11 @@ generate_extlinux() {
         entry_count="$(( entry_count + 1 ))"
         logi "Found entry ${entry_count}: ${line}"
         for target in ${U_BOOT_TARGETS}; do
+            if ! has_target_plugin "${target}"; then
+                loge "target plugin not implemented: ${target}"
+                exit 1
+            fi
+
             content="$(printf "%s\n\n%s" "${content}" "label entry_${entry_count}_${target}")"
             content="$(printf "%s\n%s" "${content}" "$(generate_extlinux_entry "${line}" "${target}")")"
         done
