@@ -154,7 +154,7 @@ __E_O___F___
 ###### Plugins
 #
 
-load_finder_plugin () {
+load_plugin_finder () {
     plugin_path="${1}"
     logd "Loading: ${plugin_path}"
 
@@ -227,15 +227,19 @@ load_plugins () {
     logd "preinstalled plugin dir: ${PLUGIN_SYS_PATH}"
     logd "user plugin dir: ${PLUGIN_USER_PATH}"
 
-    # loading kernel finder plugins
-    sys_plugin_finders="$(find "${PLUGIN_SYS_PATH}/finders" -maxdepth 1 -type f -name '*.plugin' 2>/dev/null || true)"
-    sys_plugin_finders="$(filter_sys_plugins_override "${sys_plugin_finders}" "${PLUGIN_USER_PATH}/finders")"
-    load_plugins_impl "load_finder_plugin" "${sys_plugin_finders}"
-    unset sys_plugin_finders
-
-    user_plugin_finders="$(find "${PLUGIN_USER_PATH}/finders" -maxdepth 1 -type f -name '*.plugin' 2>/dev/null || true)"
-    load_plugins_impl "load_finder_plugin" "${user_plugin_finders}"
-    unset user_plugin_finders
+    for type in "finder"; do
+        logd "Loading ${type} plugins..."
+        # pre-installed plugins
+        sys_plugin="$(find "${PLUGIN_SYS_PATH}/${type}" -maxdepth 1 -type f -name '*.plugin' 2>/dev/null || true)"
+        sys_plugin="$(filter_sys_plugins_override "${sys_plugin}" "${PLUGIN_USER_PATH}/${type}")"
+        load_plugins_impl "load_plugin_${type}" "${sys_plugin}"
+        unset sys_plugin
+        # user-configured plugins
+        user_plugin="$(find "${PLUGIN_USER_PATH}/${type}" -maxdepth 1 -type f -name '*.plugin' 2>/dev/null || true)"
+        load_plugins_impl "load_plugin_${type}" "${user_plugin}"
+        unset user_plugin
+        unset type
+    done
 }
 
 find_kernels() {
