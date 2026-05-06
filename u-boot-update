@@ -274,8 +274,8 @@ __E_O___F___
 }
 
 generate_extlinux_entry() {
-    export KERNEL_VERSION="${1}"
-    export BOOT_TARGET="${2}"
+    KERNEL_VERSION="${1}"
+    BOOT_TARGET="${2}"
 
     logd "generating for kernel (${KERNEL_VERSION}) target (${BOOT_TARGET})"
 #     cat << __E_O___F___
