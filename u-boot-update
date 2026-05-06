@@ -355,8 +355,8 @@ ${1}
 __E_O___F___
 
     if [ $entry_count -eq 0 ]; then
-        loge "No kernel entry found"
-        exit 1
+        logw "No kernel entry found"
+        content="$(printf "%s\n" "${content}" | sed '/^default entry_1_default$/d')"
     fi
     unset entry_count
 
