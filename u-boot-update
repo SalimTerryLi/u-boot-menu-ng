@@ -155,26 +155,10 @@ __E_O___F___
 #
 
 load_plugin_finder () {
-    plugin_path="${1}"
-    logd "Loading: ${plugin_path}"
-
-    unset get_plugin_id
-    # shellcheck shell=dash disable=SC1090
-    . "${plugin_path}"
-
-    if ! is_function "get_plugin_id"; then
-        loge "Not implemented: get_plugin_id in ${plugin_path}"
-        exit 1
-    fi
-    plugin_id="$(get_plugin_id)"
+    plugin_id="${1}"
 
     if ! is_function "find_kernels_${plugin_id}"; then
-        loge "Not implemented: find_kernels_${plugin_id} in ${plugin_path}"
-        exit 1
-    fi
-
-    if ! is_function "parse_config_finder_${plugin_id}"; then
-        loge "Not implemented: parse_config_${plugin_id} in ${plugin_path}"
+        loge "Not implemented: find_kernels_${plugin_id} in ${plugin_id}"
         exit 1
     fi
 
@@ -182,8 +166,6 @@ load_plugin_finder () {
     logd "Finder plugin loaded: ${plugin_id}"
 
     unset plugin_id
-    unset get_plugin_id
-    unset plugin_path
 }
 
 has_finder_plugin () {
@@ -211,16 +193,36 @@ __E_O___F___
 }
 
 load_plugins_impl () {
-    plugin_loader="${1}"
+    plugin_type="${1}"
     plugin_list="${2}"
     while IFS= read -r line || [ -n "${line}" ]; do
         [ -z "${line}" ] && continue
-        "${plugin_loader}" "${line}"
+        logd "Loading: ${line}"
+
+        unset get_plugin_id
+        # shellcheck shell=dash disable=SC1090
+        . "${line}"
+
+        if ! is_function "get_plugin_id"; then
+            loge "Not implemented: get_plugin_id in ${line}"
+            exit 1
+        fi
+        plugin_id="$(get_plugin_id)"
+
+        if ! is_function "parse_config_${plugin_type}_${plugin_id}"; then
+            loge "Not implemented: parse_config_${plugin_type}_${plugin_id} in ${plugin_id}"
+            exit 1
+        fi
+
+        "load_plugin_${plugin_type}" "${plugin_id}"
+
+        unset plugin_id
+        unset get_plugin_id
     done << __E_O___F___
 ${plugin_list}
 __E_O___F___
     unset plugin_list
-    unset plugin_loader
+    unset plugin_type
 }
 
 load_plugins () {
@@ -232,11 +234,11 @@ load_plugins () {
         # pre-installed plugins
         sys_plugin="$(find "${PLUGIN_SYS_PATH}/${type}" -maxdepth 1 -type f -name '*.plugin' 2>/dev/null || true)"
         sys_plugin="$(filter_sys_plugins_override "${sys_plugin}" "${PLUGIN_USER_PATH}/${type}")"
-        load_plugins_impl "load_plugin_${type}" "${sys_plugin}"
+        load_plugins_impl "${type}" "${sys_plugin}"
         unset sys_plugin
         # user-configured plugins
         user_plugin="$(find "${PLUGIN_USER_PATH}/${type}" -maxdepth 1 -type f -name '*.plugin' 2>/dev/null || true)"
-        load_plugins_impl "load_plugin_${type}" "${user_plugin}"
+        load_plugins_impl "${type}" "${user_plugin}"
         unset user_plugin
         unset type
     done
