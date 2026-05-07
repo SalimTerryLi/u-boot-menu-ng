@@ -306,11 +306,6 @@ generate_extlinux_entry() {
     boot_target_cmdline="$("boot_target_${boot_target_id}_cmdline")"
 
     logd "generating for kernel (${KERNEL_VERSION}) target (${BOOT_TARGET})"
-#     cat << __E_O___F___
-#     menu label $(eval printf "\"%s\"" "\"${U_BOOT_ENTRY_LABEL}\"")
-#     linux $(eval printf "\"%s\"" "\"${U_BOOT_ENTRY_KERNEL}\"")
-#     append $(eval printf "\"%s\"" "\"${U_BOOT_ENTRY_BOOT_ARGS}\"")
-# __E_O___F___
     eval printf "\"\tmenu label %s\n\"" "\"${U_BOOT_ENTRY_LABEL}\""
     eval printf "\"\tlinux %s\n\"" "\"${U_BOOT_ENTRY_KERNEL}\""
     eval printf "\"\tappend %s\n\"" "\"${U_BOOT_ENTRY_BOOT_ARGS}${boot_target_cmdline:+ ${boot_target_cmdline}}\""
@@ -331,9 +326,6 @@ generate_extlinux_entry() {
     unset boot_target_cmdline
 }
 
-# Expected kver format:
-# ${KVER}*${KERNEL_FILENAME}
-# KVER should be the same as /lib/modules/xxx, while filename should be basename
 generate_extlinux() {
     content="$(generate_extlinux_head)"
     content="$(printf "%s\n\n%s" "${content}" "$(generate_extlinux_title)")"
