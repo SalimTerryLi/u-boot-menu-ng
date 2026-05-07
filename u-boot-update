@@ -20,6 +20,7 @@ U_BOOT_PROMPT='1'
 U_BOOT_TITLE='U-Boot Menu'
 U_BOOT_SEARCH_METHOD='bootdir'
 U_BOOT_TARGETS='default rescue'
+U_BOOT_ENTRIES_NUM=5
 U_BOOT_ENTRY_LABEL='Bootable - Linux${KERNEL_VERSION:+ ${KERNEL_VERSION}}${BOOT_TARGET:+ (${BOOT_TARGET})}'
 U_BOOT_ENTRY_KERNEL='/boot/vmlinuz${KERNEL_VERSION:+-${KERNEL_VERSION}}'
 U_BOOT_ENTRY_BOOT_ARGS='root="$(findmnt -nfo SOURCE /)"'
@@ -113,6 +114,7 @@ parse_config_file_impl () {
     printf "U_BOOT_TITLE='%s'\n" "${U_BOOT_TITLE}"
     printf "U_BOOT_SEARCH_METHOD='%s'\n" "${U_BOOT_SEARCH_METHOD}"
     printf "U_BOOT_TARGETS='%s'\n" "${U_BOOT_TARGETS}"
+    printf "U_BOOT_ENTRIES_NUM='%s'\n" "${U_BOOT_ENTRIES_NUM}"
     printf "U_BOOT_ENTRY_LABEL='%s'\n" "${U_BOOT_ENTRY_LABEL}"
     printf "U_BOOT_ENTRY_KERNEL='%s'\n" "${U_BOOT_ENTRY_KERNEL}"
     printf "U_BOOT_ENTRY_BOOT_ARGS='%s'\n" "${U_BOOT_ENTRY_BOOT_ARGS}"
@@ -340,6 +342,11 @@ generate_extlinux() {
     while IFS= read -r line; do
         [ -z "${line}" ] && continue
         entry_count="$(( entry_count + 1 ))"
+        if [ ${entry_count} -gt ${U_BOOT_ENTRIES_NUM} ]; then
+            logi "Skip entry: ${line}"
+            continue
+        fi
+
         logi "Found entry ${entry_count}: ${line}"
         for target in ${U_BOOT_TARGETS}; do
             if ! has_target_plugin "${target}"; then
