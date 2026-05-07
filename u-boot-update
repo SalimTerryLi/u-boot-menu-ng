@@ -20,12 +20,12 @@ U_BOOT_PROMPT='1'
 U_BOOT_TITLE='U-Boot Menu'
 U_BOOT_SEARCH_METHOD='bootdir'
 U_BOOT_TARGETS='default rescue'
-U_BOOT_TARGET_LABEL='Bootable - Linux${KERNEL_VERSION:+ ${KERNEL_VERSION}}${BOOT_TARGET:+ (${BOOT_TARGET})}'
-U_BOOT_TARGET_KERNEL='/boot/vmlinuz${KERNEL_VERSION:+-${KERNEL_VERSION}}'
-U_BOOT_TARGET_BOOT_ARGS='root="$(findmnt -nfo SOURCE /)"'
-U_BOOT_TARGET_INITRD='/boot/initramfs${KERNEL_VERSION:+-${KERNEL_VERSION}}.img'
-U_BOOT_TARGET_FDT=''
-U_BOOT_TARGET_FDT_DIR='/boot/dtb/${KERNEL_VERSION}'
+U_BOOT_ENTRY_LABEL='Bootable - Linux${KERNEL_VERSION:+ ${KERNEL_VERSION}}${BOOT_TARGET:+ (${BOOT_TARGET})}'
+U_BOOT_ENTRY_KERNEL='/boot/vmlinuz${KERNEL_VERSION:+-${KERNEL_VERSION}}'
+U_BOOT_ENTRY_BOOT_ARGS='root="$(findmnt -nfo SOURCE /)"'
+U_BOOT_ENTRY_INITRD='/boot/initramfs${KERNEL_VERSION:+-${KERNEL_VERSION}}.img'
+U_BOOT_ENTRY_FDT=''
+U_BOOT_ENTRY_FDT_DIR='/boot/dtb/${KERNEL_VERSION}'
 #
 # Be quiet
 readonly LOG_LEVEL="${LOG_LEVEL:-ERROR}"
@@ -113,12 +113,12 @@ parse_config_file_impl () {
     printf "U_BOOT_TITLE='%s'\n" "${U_BOOT_TITLE}"
     printf "U_BOOT_SEARCH_METHOD='%s'\n" "${U_BOOT_SEARCH_METHOD}"
     printf "U_BOOT_TARGETS='%s'\n" "${U_BOOT_TARGETS}"
-    printf "U_BOOT_TARGET_LABEL='%s'\n" "${U_BOOT_TARGET_LABEL}"
-    printf "U_BOOT_TARGET_KERNEL='%s'\n" "${U_BOOT_TARGET_KERNEL}"
-    printf "U_BOOT_TARGET_BOOT_ARGS='%s'\n" "${U_BOOT_TARGET_BOOT_ARGS}"
-    printf "U_BOOT_TARGET_INITRD='%s'\n" "${U_BOOT_TARGET_INITRD}"
-    printf "U_BOOT_TARGET_FDT='%s'\n" "${U_BOOT_TARGET_FDT}"
-    printf "U_BOOT_TARGET_FDT_DIR='%s'\n" "${U_BOOT_TARGET_FDT_DIR}"
+    printf "U_BOOT_ENTRY_LABEL='%s'\n" "${U_BOOT_ENTRY_LABEL}"
+    printf "U_BOOT_ENTRY_KERNEL='%s'\n" "${U_BOOT_ENTRY_KERNEL}"
+    printf "U_BOOT_ENTRY_BOOT_ARGS='%s'\n" "${U_BOOT_ENTRY_BOOT_ARGS}"
+    printf "U_BOOT_ENTRY_INITRD='%s'\n" "${U_BOOT_ENTRY_INITRD}"
+    printf "U_BOOT_ENTRY_FDT='%s'\n" "${U_BOOT_ENTRY_FDT}"
+    printf "U_BOOT_ENTRY_FDT_DIR='%s'\n" "${U_BOOT_ENTRY_FDT_DIR}"
 
     # Let plugins pick up their configs too
     while IFS= read -r line || [ -n "${line}" ]; do
@@ -305,23 +305,23 @@ generate_extlinux_entry() {
 
     logd "generating for kernel (${KERNEL_VERSION}) target (${BOOT_TARGET})"
 #     cat << __E_O___F___
-#     menu label $(eval printf "\"%s\"" "\"${U_BOOT_TARGET_LABEL}\"")
-#     linux $(eval printf "\"%s\"" "\"${U_BOOT_TARGET_KERNEL}\"")
-#     append $(eval printf "\"%s\"" "\"${U_BOOT_TARGET_BOOT_ARGS}\"")
+#     menu label $(eval printf "\"%s\"" "\"${U_BOOT_ENTRY_LABEL}\"")
+#     linux $(eval printf "\"%s\"" "\"${U_BOOT_ENTRY_KERNEL}\"")
+#     append $(eval printf "\"%s\"" "\"${U_BOOT_ENTRY_BOOT_ARGS}\"")
 # __E_O___F___
-    eval printf "\"\tmenu label %s\n\"" "\"${U_BOOT_TARGET_LABEL}\""
-    eval printf "\"\tlinux %s\n\"" "\"${U_BOOT_TARGET_KERNEL}\""
-    eval printf "\"\tappend %s\n\"" "\"${U_BOOT_TARGET_BOOT_ARGS}${boot_target_cmdline:+ ${boot_target_cmdline}}\""
-    if [ -n "${U_BOOT_TARGET_INITRD}" ]; then
-        eval printf "\"\tinitrd %s\n\"" "\"${U_BOOT_TARGET_INITRD}\""
+    eval printf "\"\tmenu label %s\n\"" "\"${U_BOOT_ENTRY_LABEL}\""
+    eval printf "\"\tlinux %s\n\"" "\"${U_BOOT_ENTRY_KERNEL}\""
+    eval printf "\"\tappend %s\n\"" "\"${U_BOOT_ENTRY_BOOT_ARGS}${boot_target_cmdline:+ ${boot_target_cmdline}}\""
+    if [ -n "${U_BOOT_ENTRY_INITRD}" ]; then
+        eval printf "\"\tinitrd %s\n\"" "\"${U_BOOT_ENTRY_INITRD}\""
     fi
-    if [ -n "${U_BOOT_TARGET_FDT}" ]; then
-        eval printf "\"\tfdt %s\n\"" "\"${U_BOOT_TARGET_FDT}\""
-        if [ -n "${U_BOOT_TARGET_FDT_DIR}" ]; then
-            logw "Ignoring U_BOOT_TARGET_FDT_DIR"
+    if [ -n "${U_BOOT_ENTRY_FDT}" ]; then
+        eval printf "\"\tfdt %s\n\"" "\"${U_BOOT_ENTRY_FDT}\""
+        if [ -n "${U_BOOT_ENTRY_FDT_DIR}" ]; then
+            logw "Ignoring U_BOOT_ENTRY_FDT_DIR"
         fi
-    elif [ -n "${U_BOOT_TARGET_FDT_DIR}" ]; then
-        eval printf "\"\tfdtdir %s\n\"" "\"${U_BOOT_TARGET_FDT_DIR}\""
+    elif [ -n "${U_BOOT_ENTRY_FDT_DIR}" ]; then
+        eval printf "\"\tfdtdir %s\n\"" "\"${U_BOOT_ENTRY_FDT_DIR}\""
     fi
     unset KERNEL_VERSION
     unset BOOT_TARGET
