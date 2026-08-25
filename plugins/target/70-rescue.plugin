@@ -15,5 +15,7 @@ boot_target_rescue_name() {
 }
 
 boot_target_rescue_cmdline() {
-    printf "single"
+    # SYSTEMD_SULOGIN_FORCE=1
+    # https://lists.debian.org/debian-doc/2025/09/msg00009.html
+    printf "single SYSTEMD_SULOGIN_FORCE=1"
 }
